@@ -30,32 +30,34 @@
     <div id="msg">Awaiting next scenario...</div>
 
    <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyBCZqR-88pf_Vs3GNdyhxmuFv2YHGs-StkopeKKIejyqxhKJc9MFbWaonQL-1hwwcJXA/exec";
+    const GOOGLE_URL = "your_url_here";
 
     function castVote(choice) {
-        // Visual feedback
-        document.getElementById('instruction').innerText = "VOTE CAST: " + choice;
-        document.getElementById('instruction').style.color = "#FF0000";
+        // 1. Check if they already voted for this scenario
+        // We'll use a unique ID for each slide later (e.g., 'S1')
+        const currentScenario = "S1"; 
+        if (localStorage.getItem("voted_" + currentScenario)) {
+            alert("Vote already recorded for this scenario.");
+            return;
+        }
 
-        // Send data directly to your Google Sheet
+        // 2. Send the data
         fetch(GOOGLE_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify({
-                scenarioId: "S1", // You can change this per slide
+                scenarioId: currentScenario,
                 activeHeartbeats: 1, 
-                correctVotes: (choice === 'B' ? 1 : 0) // Example: B is correct
+                correctVotes: (choice === 'B' ? 1 : 0)
             })
         });
 
-        // Lock buttons for 2 seconds
-        const btns = document.querySelectorAll('.vote-btn');
-        btns.forEach(b => b.style.opacity = "0.3");
-        setTimeout(() => {
-            document.getElementById('instruction').innerText = "SELECT YOUR RESPONSE";
-            document.getElementById('instruction').style.color = "#FFF";
-            btns.forEach(b => b.style.opacity = "1");
-        }, 2000);
+        // 3. Lock it locally
+        localStorage.setItem("voted_" + currentScenario, "true");
+
+        // 4. Visual feedback
+        document.getElementById('instruction').innerText = "VOTE RECORDED";
+        document.querySelectorAll('.vote-btn').forEach(b => b.style.opacity = "0.2");
     }
 </script>
        </body>
