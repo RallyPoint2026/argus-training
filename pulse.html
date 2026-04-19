@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Argus Pulse Engine</title>
+    <style>
+        body { background: #000; margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; }
+        #canvas { display: block; }
+        .box { position: absolute; border: 2px solid #fff; width: 40%; height: 35%; color: #fff; font-size: 40px; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: 0.5s; opacity: 0.3; }
+        #boxA { top: 10%; left: 5%; }
+        #boxB { top: 10%; right: 5%; }
+        #boxC { bottom: 10%; left: 5%; }
+        #boxD { bottom: 10%; right: 5%; }
+        .highlight { border-color: #FF0000; opacity: 1; box-shadow: 0 0 20px #FF0000; }
+        .correct { border-color: #FFFF00; color: #FFFF00; box-shadow: 0 0 30px #FFFF00; }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div id="boxA" class="box">A</div>
+<div id="boxB" class="box">B</div>
+<div id="boxC" class="box">C</div>
+<div id="boxD" class="box">D</div>
+
+<script>
+    // 1. YOUR CONNECTION: Paste your Google Web App URL below
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyBCZqR-88pf_Vs3GNdyhxmuFv2YHGs-StkopeKKIejyqxhKJc9MFbWaonQL-1hwwcJXA/exec";
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let particles = [];
+    let state = "VOTING"; // VOTING or REVEAL
+
+    class ParticleCluster {
+        constructor() {
+            this.x = canvas.width / 2 + (Math.random() - 0.5) * 100;
+            this.y = canvas.height + 50;
+            this.targetX = this.x;
+            this.targetY = canvas.height - 100;
+            this.dots = [];
+            for(let i=0; i<8; i++) { // 8 dots per officer "cluster"
+                this.dots.push({ ox: Math.random()*20, oy: Math.random()*20 });
+            }
+            this.color = "#fff";
+        }
+
+        update() {
+            this.x += (this.targetX - this.x) * 0.1;
+            this.y += (this.targetY - this.y) * 0.1;
+        }
+
+        draw() {
+            ctx.fillStyle = this.color;
+            this.dots.forEach(d => {
+                ctx.beginPath();
+                ctx.arc(this.x + d.ox, this.y + d.oy, 2, 0, Math.PI*2);
+                ctx.fill();
+            });
+        }
+    }
+
+    // Listen for Clicker (Right Arrow / Page Down)
+    window.addEventListener('keydown', (e) => {
+        if (e.key === "ArrowRight" || e.key === "PageDown") {
+            triggerReveal();
+        }
+    });
+
+    function triggerReveal() {
+        state = "REVEAL";
+        document.querySelectorAll('.box').forEach(b => b.classList.add('highlight'));
+        // In a real session, this is where we'd calculate who went where
+        // For now, it triggers the 'Snap'
+        particles.forEach(p => {
+            // Logic to move particles to their zones based on data
+            p.targetY = canvas.height / 2;
+        });
+        
+        // Final Red Team Security: Send data to your Google Sheet
+        logToGoogle();
+    }
+
+    function logToGoogle() {
+        fetch(GOOGLE_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                scenarioId: "S1", // This updates based on slide
+                activeHeartbeats: particles.length || 1,
+                correctVotes: 10 // Placeholder for simulation
+            })
+        });
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animate);
+    }
+
+    // Simulation: Add a new officer cluster every second for testing
+    setInterval(() => { if(particles.length < 50) particles.push(new ParticleCluster()); }, 1000);
+    animate();
+
+</script>
+</body>
+</html>

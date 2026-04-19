@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Argus Participant</title>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .header { border-bottom: 2px solid #FF0000; padding: 10px; font-weight: bold; letter-spacing: 2px; margin-bottom: 30px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .vote-btn { 
+            background: #000; border: 2px solid #fff; color: #fff; 
+            padding: 50px 0; font-size: 30px; font-weight: bold; border-radius: 8px;
+        }
+        .vote-btn:active { background: #FF0000; border-color: #FF0000; }
+        #msg { margin-top: 30px; color: #888; text-transform: uppercase; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">ARGUS TRAINING</div>
+    <div id="instruction">SELECT YOUR RESPONSE</div>
+    
+    <div class="btn-grid">
+        <button class="vote-btn" onclick="castVote('A')">A</button>
+        <button class="vote-btn" onclick="castVote('B')">B</button>
+        <button class="vote-btn" onclick="castVote('C')">C</button>
+        <button class="vote-btn" onclick="castVote('D')">D</button>
+    </div>
+
+    <div id="msg">Awaiting next scenario...</div>
+
+    <script>
+        function castVote(choice) {
+            document.getElementById('instruction').innerText = "VOTE CAST: " + choice;
+            document.getElementById('instruction').style.color = "#FF0000";
+            
+            // In the Pro version, this pings the Pulse Engine in real-time.
+            console.log("Officer voted: " + choice);
+            
+            // Temporary lockout to prevent spamming
+            const btns = document.querySelectorAll('.vote-btn');
+            btns.forEach(b => b.style.opacity = "0.3");
+            setTimeout(() => {
+                document.getElementById('instruction').innerText = "SELECT YOUR RESPONSE";
+                document.getElementById('instruction').style.color = "#FFF";
+                btns.forEach(b => b.style.opacity = "1");
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
