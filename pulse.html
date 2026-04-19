@@ -1,111 +1,68 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Argus Pulse Engine</title>
     <style>
-        body { background: #000; margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; }
-        #canvas { display: block; }
-        .box { position: absolute; border: 2px solid #fff; width: 40%; height: 35%; color: #fff; font-size: 40px; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: 0.5s; opacity: 0.3; }
-        #boxA { top: 10%; left: 5%; }
-        #boxB { top: 10%; right: 5%; }
-        #boxC { bottom: 10%; left: 5%; }
-        #boxD { bottom: 10%; right: 5%; }
-        .highlight { border-color: #FF0000; opacity: 1; box-shadow: 0 0 20px #FF0000; }
-        .correct { border-color: #FFFF00; color: #FFFF00; box-shadow: 0 0 30px #FFFF00; }
+        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        #header { position: absolute; top: 40px; width: 100%; text-align: center; z-index: 10; }
+        #question { font-size: 36px; color: #ffcc00; font-weight: bold; max-width: 80%; margin: 0 auto; text-transform: uppercase; }
+        .container { display: flex; justify-content: space-around; align-items: flex-end; height: 100vh; padding: 0 5% 100px 5%; box-sizing: border-box; }
+        .box { width: 22%; border: 2px solid #333; border-radius: 15px; text-align: center; padding: 40px 15px; transition: all 0.4s ease; position: relative; min-height: 140px; background: rgba(30,30,30,0.9); }
+        .label { font-size: 26px; font-weight: 700; line-height: 1.2; }
+        .box-letter { font-size: 60px; color: rgba(255,255,255,0.03); position: absolute; bottom: 5px; right: 15px; font-weight: 900; }
+        .correct-glow { border-color: #00ff00 !important; box-shadow: 0 0 40px rgba(0, 255, 0, 0.6); background: rgba(0, 255, 0, 0.15) !important; color: #00ff00 !important; }
     </style>
 </head>
 <body>
+    <div id="header"><div id="question">SYNCHRONIZING WITH SHEET...</div></div>
+    <div class="container">
+        <div id="boxA" class="box"><div id="textA" class="label"></div><div class="box-letter">A</div></div>
+        <div id="boxB" class="box"><div id="textB" class="label"></div><div class="box-letter">B</div></div>
+        <div id="boxC" class="box"><div id="textC" class="label"></div><div class="box-letter">C</div></div>
+        <div id="boxD" class="box"><div id="textD" class="label"></div><div class="box-letter">D</div></div>
+    </div>
 
-<canvas id="canvas"></canvas>
-<div id="boxA" class="box">A</div>
-<div id="boxB" class="box">B</div>
-<div id="boxC" class="box">C</div>
-<div id="boxD" class="box">D</div>
+    <script>
+        const SHEET_ID = '16aJUFj5ql8OnEbTOEgHPque-_8L5Ylu4P7VDC4t1CoM';
+        const urlParams = new URLSearchParams(window.location.search);
+        const scenarioID = urlParams.get('id') || '10SBV01'; 
 
-<script>
-    // 1. YOUR CONNECTION: Paste your Google Web App URL below
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyBCZqR-88pf_Vs3GNdyhxmuFv2YHGs-StkopeKKIejyqxhKJc9MFbWaonQL-1hwwcJXA/exec";
+        async function fetchScenarioData() {
+            try {
+                // Simplified URL that pulls the first sheet as a CSV (much more reliable than JSON for public sheets)
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
+                const response = await fetch(url);
+                const csvData = await response.text();
+                
+                // Parse CSV rows
+                const rows = csvData.split('\n').map(row => row.split(','));
+                
+                // Find row by Scenario ID (Column A)
+                const match = rows.find(r => r[0].trim() === scenarioID);
 
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let particles = [];
-    let state = "VOTING"; // VOTING or REVEAL
-
-    class ParticleCluster {
-        constructor() {
-            this.x = canvas.width / 2 + (Math.random() - 0.5) * 100;
-            this.y = canvas.height + 50;
-            this.targetX = this.x;
-            this.targetY = canvas.height - 100;
-            this.dots = [];
-            for(let i=0; i<8; i++) { // 8 dots per officer "cluster"
-                this.dots.push({ ox: Math.random()*20, oy: Math.random()*20 });
+                if (match) {
+                    document.getElementById('question').innerText = match[1];
+                    document.getElementById('textA').innerText = match[2];
+                    document.getElementById('textB').innerText = match[3];
+                    document.getElementById('textC').innerText = match[4];
+                    document.getElementById('textD').innerText = match[5];
+                    window.targetAnswer = match[6].trim().toUpperCase();
+                } else {
+                    document.getElementById('question').innerText = "SCENARIO ID NOT FOUND";
+                }
+            } catch (e) {
+                document.getElementById('question').innerText = "SHEET CONNECTION FAILED";
+                console.error(e);
             }
-            this.color = "#fff";
         }
 
-        update() {
-            this.x += (this.targetX - this.x) * 0.1;
-            this.y += (this.targetY - this.y) * 0.1;
-        }
-
-        draw() {
-            ctx.fillStyle = this.color;
-            this.dots.forEach(d => {
-                ctx.beginPath();
-                ctx.arc(this.x + d.ox, this.y + d.oy, 2, 0, Math.PI*2);
-                ctx.fill();
-            });
-        }
-    }
-
-    // Listen for Clicker (Right Arrow / Page Down)
-    window.addEventListener('keydown', (e) => {
-        if (e.key === "ArrowRight" || e.key === "PageDown") {
-            triggerReveal();
-        }
-    });
-
-    function triggerReveal() {
-        state = "REVEAL";
-        document.querySelectorAll('.box').forEach(b => b.classList.add('highlight'));
-        // In a real session, this is where we'd calculate who went where
-        // For now, it triggers the 'Snap'
-        particles.forEach(p => {
-            // Logic to move particles to their zones based on data
-            p.targetY = canvas.height / 2;
+        window.addEventListener('keydown', (e) => {
+            if (e.key === "ArrowRight" && window.targetAnswer) {
+                const targetBox = document.getElementById('box' + window.targetAnswer);
+                if (targetBox) targetBox.classList.add('correct-glow');
+            }
         });
-        
-        // Final Red Team Security: Send data to your Google Sheet
-        logToGoogle();
-    }
 
-    function logToGoogle() {
-        fetch(GOOGLE_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-                scenarioId: "S1", // This updates based on slide
-                activeHeartbeats: particles.length || 1,
-                correctVotes: 10 // Placeholder for simulation
-            })
-        });
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => { p.update(); p.draw(); });
-        requestAnimationFrame(animate);
-    }
-
-    // Simulation: Add a new officer cluster every second for testing
-    setInterval(() => { if(particles.length < 50) particles.push(new ParticleCluster()); }, 1000);
-    animate();
-
-</script>
+        fetchScenarioData();
+    </script>
 </body>
 </html>
