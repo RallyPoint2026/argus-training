@@ -29,23 +29,34 @@
 
     <div id="msg">Awaiting next scenario...</div>
 
-    <script>
-        function castVote(choice) {
-            document.getElementById('instruction').innerText = "VOTE CAST: " + choice;
-            document.getElementById('instruction').style.color = "#FF0000";
-            
-            // In the Pro version, this pings the Pulse Engine in real-time.
-            console.log("Officer voted: " + choice);
-            
-            // Temporary lockout to prevent spamming
-            const btns = document.querySelectorAll('.vote-btn');
-            btns.forEach(b => b.style.opacity = "0.3");
-            setTimeout(() => {
-                document.getElementById('instruction').innerText = "SELECT YOUR RESPONSE";
-                document.getElementById('instruction').style.color = "#FFF";
-                btns.forEach(b => b.style.opacity = "1");
-            }, 2000);
-        }
-    </script>
-</body>
+   <script>
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyBCZqR-88pf_Vs3GNdyhxmuFv2YHGs-StkopeKKIejyqxhKJc9MFbWaonQL-1hwwcJXA/exec";
+
+    function castVote(choice) {
+        // Visual feedback
+        document.getElementById('instruction').innerText = "VOTE CAST: " + choice;
+        document.getElementById('instruction').style.color = "#FF0000";
+
+        // Send data directly to your Google Sheet
+        fetch(GOOGLE_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                scenarioId: "S1", // You can change this per slide
+                activeHeartbeats: 1, 
+                correctVotes: (choice === 'B' ? 1 : 0) // Example: B is correct
+            })
+        });
+
+        // Lock buttons for 2 seconds
+        const btns = document.querySelectorAll('.vote-btn');
+        btns.forEach(b => b.style.opacity = "0.3");
+        setTimeout(() => {
+            document.getElementById('instruction').innerText = "SELECT YOUR RESPONSE";
+            document.getElementById('instruction').style.color = "#FFF";
+            btns.forEach(b => b.style.opacity = "1");
+        }, 2000);
+    }
+</script>
+       </body>
 </html>
