@@ -3,49 +3,39 @@
 <head>
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-        #header { position: absolute; top: 40px; width: 100%; text-align: center; z-index: 10; }
-        #question { font-size: 36px; color: #ffcc00; font-weight: bold; max-width: 80%; margin: 0 auto; text-transform: uppercase; }
+        #header { position: absolute; top: 40px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
+        #question { font-size: 36px; color: #ffcc00; font-weight: bold; max-width: 80%; margin: 0 auto; text-shadow: 2px 2px 10px #000; }
         .container { display: flex; justify-content: space-around; align-items: flex-end; height: 100vh; padding: 0 5% 100px 5%; box-sizing: border-box; }
-        .box { width: 22%; border: 2px solid #333; border-radius: 15px; text-align: center; padding: 40px 15px; transition: all 0.4s ease; position: relative; min-height: 140px; background: rgba(30,30,30,0.9); }
-        .label { font-size: 26px; font-weight: 700; line-height: 1.2; }
-        .box-letter { font-size: 60px; color: rgba(255,255,255,0.03); position: absolute; bottom: 5px; right: 15px; font-weight: 900; }
-        .correct-glow { border-color: #00ff00 !important; box-shadow: 0 0 40px rgba(0, 255, 0, 0.6); background: rgba(0, 255, 0, 0.15) !important; color: #00ff00 !important; }
+        .box { width: 22%; border: 2px solid #333; border-radius: 15px; text-align: center; padding: 40px 15px; position: relative; min-height: 140px; background: rgba(20,20,20,0.7); z-index: 5; transition: all 0.5s ease; }
+        .label { font-size: 26px; font-weight: 700; line-height: 1.2; text-shadow: 1px 1px 5px #000; }
+        .box-letter { font-size: 60px; color: rgba(255,255,255,0.05); position: absolute; bottom: 5px; right: 15px; font-weight: 900; }
+        .correct-glow { border-color: #00ff00 !important; box-shadow: 0 0 40px rgba(0, 255, 0, 0.5); background: rgba(0, 255, 0, 0.1) !important; color: #00ff00 !important; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; }
     </style>
 </head>
 <body>
-    <div id="header"><div id="question">CONNECTING TO SCENARIOS...</div></div>
+    <div id="header"><div id="question">SYNCING...</div></div>
     <div class="container">
         <div id="boxA" class="box"><div id="textA" class="label"></div><div class="box-letter">A</div></div>
         <div id="boxB" class="box"><div id="textB" class="label"></div><div class="box-letter">B</div></div>
         <div id="boxC" class="box"><div id="textC" class="label"></div><div class="box-letter">C</div></div>
         <div id="boxD" class="box"><div id="textD" class="label"></div><div class="box-letter">D</div></div>
     </div>
+    <canvas id="canvas"></canvas>
 
     <script>
         const SHEET_ID = '16aJUFj5ql8OnEbTOEgHPque-_8L5Ylu4P7VDC4t1CoM';
         const urlParams = new URLSearchParams(window.location.search);
-        const scenarioID = urlParams.get('id') || '10SBV01'; 
-
+        const scenarioID = urlParams.get('id') || '10SBV01';
+        
+        // --- DATA FETCHING ---
         async function fetchScenarioData() {
             try {
-                // Pointing to your specific sheet ID and the first tab (gid=0)
                 const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
                 const response = await fetch(url);
-                if (!response.ok) throw new Error('Network response was not ok');
                 const csvData = await response.text();
-                
-                // Splitting CSV by line, then by comma
-                const rows = csvData.split('\n');
-                let match = null;
-
-                for (let i = 0; i < rows.length; i++) {
-                    const columns = rows[i].split(',');
-                    if (columns[0].trim() === scenarioID) {
-                        match = columns;
-                        break;
-                    }
-                }
-
+                const rows = csvData.split('\n').map(r => r.split(','));
+                const match = rows.find(r => r[0].trim() === scenarioID);
                 if (match) {
                     document.getElementById('question').innerText = match[1].replace(/"/g, "");
                     document.getElementById('textA').innerText = match[2].replace(/"/g, "");
@@ -53,22 +43,68 @@
                     document.getElementById('textC').innerText = match[4].replace(/"/g, "");
                     document.getElementById('textD').innerText = match[5].replace(/"/g, "");
                     window.targetAnswer = match[6].trim().toUpperCase().replace(/"/g, "");
-                } else {
-                    document.getElementById('question').innerText = "ID NOT FOUND: " + scenarioID;
                 }
-            } catch (e) {
-                document.getElementById('question').innerText = "CONNECTION ERROR";
-                console.error(e);
+            } catch (e) { console.error("Data error", e); }
+        }
+
+        // --- PARTICLE ENGINE ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let revealed = false;
+
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random()-0.5) * 2,
+                    vy: (Math.random()-0.5) * 2,
+                    targetX: null,
+                    targetY: null
+                });
             }
         }
 
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffcc00';
+            particles.forEach(p => {
+                if (revealed && p.targetX) {
+                    p.x += (p.targetX - p.x) * 0.05;
+                    p.y += (p.targetY - p.y) * 0.05;
+                } else {
+                    p.x += p.vx; p.y += p.vy;
+                    if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                    if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+                ctx.fill();
+            });
+            requestAnimationFrame(draw);
+        }
+
         window.addEventListener('keydown', (e) => {
-            if (e.key === "ArrowRight" && window.targetAnswer) {
-                const targetBox = document.getElementById('box' + window.targetAnswer);
-                if (targetBox) targetBox.classList.add('correct-glow');
+            if (e.key === "ArrowRight") {
+                revealed = true;
+                if (window.targetAnswer) document.getElementById('box' + window.targetAnswer).classList.add('correct-glow');
+                
+                // Snap particles to random boxes for visual effect
+                const boxes = ['A','B','C','D'];
+                particles.forEach(p => {
+                    const choice = boxes[Math.floor(Math.random()*4)];
+                    const rect = document.getElementById('box' + choice).getBoundingClientRect();
+                    p.targetX = rect.left + Math.random() * rect.width;
+                    p.targetY = rect.top + Math.random() * rect.height;
+                });
             }
         });
 
+        init();
+        draw();
         fetchScenarioData();
     </script>
 </body>
