@@ -13,7 +13,7 @@
     </style>
 </head>
 <body>
-    <div id="header"><div id="question">SYNCHRONIZING WITH SHEET...</div></div>
+    <div id="header"><div id="question">CONNECTING TO SCENARIOS...</div></div>
     <div class="container">
         <div id="boxA" class="box"><div id="textA" class="label"></div><div class="box-letter">A</div></div>
         <div id="boxB" class="box"><div id="textB" class="label"></div><div class="box-letter">B</div></div>
@@ -28,29 +28,36 @@
 
         async function fetchScenarioData() {
             try {
-                // Simplified URL that pulls the first sheet as a CSV (much more reliable than JSON for public sheets)
+                // Pointing to your specific sheet ID and the first tab (gid=0)
                 const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
                 const response = await fetch(url);
+                if (!response.ok) throw new Error('Network response was not ok');
                 const csvData = await response.text();
                 
-                // Parse CSV rows
-                const rows = csvData.split('\n').map(row => row.split(','));
-                
-                // Find row by Scenario ID (Column A)
-                const match = rows.find(r => r[0].trim() === scenarioID);
+                // Splitting CSV by line, then by comma
+                const rows = csvData.split('\n');
+                let match = null;
+
+                for (let i = 0; i < rows.length; i++) {
+                    const columns = rows[i].split(',');
+                    if (columns[0].trim() === scenarioID) {
+                        match = columns;
+                        break;
+                    }
+                }
 
                 if (match) {
-                    document.getElementById('question').innerText = match[1];
-                    document.getElementById('textA').innerText = match[2];
-                    document.getElementById('textB').innerText = match[3];
-                    document.getElementById('textC').innerText = match[4];
-                    document.getElementById('textD').innerText = match[5];
-                    window.targetAnswer = match[6].trim().toUpperCase();
+                    document.getElementById('question').innerText = match[1].replace(/"/g, "");
+                    document.getElementById('textA').innerText = match[2].replace(/"/g, "");
+                    document.getElementById('textB').innerText = match[3].replace(/"/g, "");
+                    document.getElementById('textC').innerText = match[4].replace(/"/g, "");
+                    document.getElementById('textD').innerText = match[5].replace(/"/g, "");
+                    window.targetAnswer = match[6].trim().toUpperCase().replace(/"/g, "");
                 } else {
-                    document.getElementById('question').innerText = "SCENARIO ID NOT FOUND";
+                    document.getElementById('question').innerText = "ID NOT FOUND: " + scenarioID;
                 }
             } catch (e) {
-                document.getElementById('question').innerText = "SHEET CONNECTION FAILED";
+                document.getElementById('question').innerText = "CONNECTION ERROR";
                 console.error(e);
             }
         }
