@@ -6,80 +6,62 @@
     <title>Rally Point Training</title>
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .header { position: absolute; top: 30px; text-align: center; width: 100%; }
+        .header { position: absolute; top: 40px; text-align: center; width: 100%; }
         .logo-text { color: #ffcc00; font-size: 24px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px; }
         .scenario-label { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
-        
-        .grid { 
-    display: grid; 
-    grid-template-columns: 1fr; 
-    gap: 15px; 
-    width: 85%; 
-    max-width: 400px; 
-    margin-top: 120px; /* Increased from 60px to clear the header */
-    transition: opacity 0.3s; 
-}
-        
-        .btn { height: 90px; border-radius: 15px; border: 2px solid #333; font-size: 32px; font-weight: 800; color: white; background: #1a1a1a; transition: all 0.1s; }
-        .btn:active { transform: scale(0.95); background: #333; }
-        
-        /* Highlight colors for buttons */
-        .btn-a:active { border-color: #d32f2f; color: #d32f2f; }
-        .btn-b:active { border-color: #1976d2; color: #1976d2; }
-        .btn-c:active { border-color: #388e3c; color: #388e3c; }
-        .btn-d:active { border-color: #fbc02d; color: #fbc02d; }
-
-        #status { margin-top: 40px; font-size: 16px; color: #666; text-align: center; padding: 0 20px; line-height: 1.4; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 85%; max-width: 400px; margin-top: 120px; transition: opacity 0.3s; }
+        .btn { height: 80px; border-radius: 15px; border: 2px solid #333; font-size: 32px; font-weight: 800; color: white; background: #1a1a1a; outline: none; -webkit-tap-highlight-color: transparent; }
+        .btn:active { background: #333; border-color: #ffcc00; }
+        #statusDisplay { margin-top: 30px; font-size: 16px; color: #666; text-align: center; padding: 0 20px; line-height: 1.4; height: 60px; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="logo-text">RALLY POINT TRAINING</div>
-        <div class="scenario-label" id="scenarioDisplay">SCENARIO: LOADING...</div>
+        <div id="scenarioDisplay" class="scenario-label">SCENARIO: LOADING...</div>
     </div>
 
     <div id="voteContainer" class="grid">
-        <button class="btn btn-a" onclick="submitVote('A')">A</button>
-        <button class="btn btn-b" onclick="submitVote('B')">B</button>
-        <button class="btn btn-c" onclick="submitVote('C')">C</button>
-        <button class="btn btn-d" onclick="submitVote('D')">D</button>
+        <button class="btn" onclick="submitVote('A')">A</button>
+        <button class="btn" onclick="submitVote('B')">B</button>
+        <button class="btn" onclick="submitVote('C')">C</button>
+        <button class="btn" onclick="submitVote('D')">D</button>
     </div>
 
-    <div id="status">Tap a button to vote.</div>
+    <div id="statusDisplay">Tap a button to vote.</div>
 
     <script>
+        // REPLACE THIS URL WITH YOUR DEPLOYMENT URL
         const scriptURL = "https://script.google.com/macros/s/AKfycbzFeUwdd0x2DXYL1IpsyBlAKK217EQb1qW4tToYaiCdvJbMw4cmIeFTJRiTZ-3l5ui95A/exec";
-        
+
         const urlParams = new URLSearchParams(window.location.search);
         const scenarioID = urlParams.get('id') || "10SBV01";
         document.getElementById('scenarioDisplay').innerText = "SCENARIO: " + scenarioID;
+
+        function submitVote(choice) {
+            const statusDiv = document.getElementById('statusDisplay');
+            const container = document.getElementById('voteContainer');
+
+            // 1. UPDATE UI IMMEDIATELY (Red-Teamed: This happens first, no matter what)
+            statusDiv.innerHTML = "<span style='color:#ffcc00; font-size: 24px; font-weight:bold;'>VOTE RECORDED</span><br><span style='color:white'>Swipe down to reset.</span>";
+            container.style.opacity = "0.3";
+            container.style.pointerEvents = "none";
+
+            // 2. SEND DATA IN BACKGROUND
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ scenarioID: scenarioID, vote: choice })
+            });
+        }
 
         // Swipe to reset logic
         let touchstartY = 0;
         window.addEventListener('touchstart', e => touchstartY = e.changedTouches[0].screenY);
         window.addEventListener('touchend', e => {
-            if (e.changedTouches[0].screenY > touchstartY + 100) {
-                location.reload(); // Refresh page on swipe down
-            }
+            if (e.changedTouches[0].screenY > touchstartY + 100) location.reload();
         });
-
-      function submitVote(choice) {
-        const statusDiv = document.getElementById('status');
-        const container = document.getElementById('voteContainer');
-
-        // 1. UPDATE THE SCREEN IMMEDIATELY
-        statusDiv.innerHTML = "<span style='color:#ffcc00; font-size: 24px; font-weight:bold;'>VOTE RECORDED</span><br><span style='color:white'>Swipe down to reset.</span>";
-        container.style.opacity = "0.3"; 
-        container.style.pointerEvents = "none"; 
-
-        // 2. SEND THE DATA IN THE BACKGROUND
-        fetch(scriptURL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({ scenarioID: scenarioID, vote: choice })
-        });
-    }
     </script>
 </body>
 </html>
