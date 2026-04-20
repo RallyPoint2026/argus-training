@@ -4,17 +4,17 @@
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #header { position: absolute; top: 40px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
-        #question { font-size: 36px; color: #ffcc00; font-weight: bold; max-width: 80%; margin: 0 auto; text-shadow: 2px 2px 10px #000; }
+        #question { font-size: 36px; color: #ffcc00; font-weight: bold; max-width: 80%; margin: 0 auto; text-shadow: 2px 2px 10px #000; text-transform: uppercase; }
         .container { display: flex; justify-content: space-around; align-items: flex-end; height: 100vh; padding: 0 5% 100px 5%; box-sizing: border-box; }
         .box { width: 22%; border: 2px solid #333; border-radius: 15px; text-align: center; padding: 40px 15px; position: relative; min-height: 140px; background: rgba(20,20,20,0.7); z-index: 5; transition: all 0.5s ease; }
         .label { font-size: 26px; font-weight: 700; line-height: 1.2; text-shadow: 1px 1px 5px #000; }
         .box-letter { font-size: 60px; color: rgba(255,255,255,0.05); position: absolute; bottom: 5px; right: 15px; font-weight: 900; }
-        .correct-glow { border-color: #00ff00 !important; box-shadow: 0 0 40px rgba(0, 255, 0, 0.5); background: rgba(0, 255, 0, 0.1) !important; color: #00ff00 !important; }
+        .correct-glow { border-color: #00ff00 !important; box-shadow: 0 0 40px rgba(0, 255, 0, 0.6); background: rgba(0, 255, 0, 0.15) !important; color: #00ff00 !important; }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; }
     </style>
 </head>
 <body>
-    <div id="header"><div id="question">SYNCING...</div></div>
+    <div id="header"><div id="question">SYNCHRONIZING ARGUS DATA...</div></div>
     <div class="container">
         <div id="boxA" class="box"><div id="textA" class="label"></div><div class="box-letter">A</div></div>
         <div id="boxB" class="box"><div id="textB" class="label"></div><div class="box-letter">B</div></div>
@@ -24,11 +24,17 @@
     <canvas id="canvas"></canvas>
 
     <script>
+        const VOTE_REPORT_URL = "https://script.google.com/macros/s/AKfycbwCyHURg2i1x8uq1-d1QNMpTCWhXsIIo4M9Fh-LpNPvnwZLE0zyZ_BZ388Idn3n0Lzh/exec";
         const SHEET_ID = '16aJUFj5ql8OnEbTOEgHPque-_8L5Ylu4P7VDC4t1CoM';
         const urlParams = new URLSearchParams(window.location.search);
         const scenarioID = urlParams.get('id') || '10SBV01';
         
-        // --- DATA FETCHING ---
+        let particles = [];
+        let revealed = false;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 1. FETCH SCENARIO TEXT
         async function fetchScenarioData() {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
@@ -44,37 +50,32 @@
                     document.getElementById('textD').innerText = match[5].replace(/"/g, "");
                     window.targetAnswer = match[6].trim().toUpperCase().replace(/"/g, "");
                 }
-            } catch (e) { console.error("Data error", e); }
+            } catch (e) { console.error("Scenario Fetch Error", e); }
         }
 
-        // --- PARTICLE ENGINE ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        let revealed = false;
-
-        function init() {
+        // 2. PARTICLE ENGINE
+        function initParticles() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            for(let i=0; i<100; i++) {
+            for(let i=0; i<150; i++) {
                 particles.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    vx: (Math.random()-0.5) * 2,
-                    vy: (Math.random()-0.5) * 2,
+                    vx: (Math.random()-0.5) * 1.5,
+                    vy: (Math.random()-0.5) * 1.5,
                     targetX: null,
                     targetY: null
                 });
             }
         }
 
-        function draw() {
+        function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#ffcc00';
             particles.forEach(p => {
                 if (revealed && p.targetX) {
-                    p.x += (p.targetX - p.x) * 0.05;
-                    p.y += (p.targetY - p.y) * 0.05;
+                    p.x += (p.targetX - p.x) * 0.07;
+                    p.y += (p.targetY - p.y) * 0.07;
                 } else {
                     p.x += p.vx; p.y += p.vy;
                     if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
@@ -84,27 +85,53 @@
                 ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
                 ctx.fill();
             });
-            requestAnimationFrame(draw);
+            requestAnimationFrame(animate);
+        }
+
+        // 3. THE REVEAL (Logic for actual vote distribution)
+        async function revealVotes() {
+            if (revealed) return;
+            revealed = true;
+            
+            if (window.targetAnswer) {
+                document.getElementById('box' + window.targetAnswer).classList.add('correct-glow');
+            }
+
+            try {
+                const resp = await fetch(`${VOTE_REPORT_URL}?id=${scenarioID}`);
+                const counts = await resp.json();
+                const totalVotes = counts.A + counts.B + counts.C + counts.D;
+                
+                if (totalVotes === 0) {
+                    console.log("No votes found in log.");
+                    return;
+                }
+
+                let pIndex = 0;
+                ['A', 'B', 'C', 'D'].forEach(letter => {
+                    const share = counts[letter] / totalVotes;
+                    const numParticles = Math.floor(share * particles.length);
+                    const rect = document.getElementById('box' + letter).getBoundingClientRect();
+                    
+                    for (let i = 0; i < numParticles; i++) {
+                        if (particles[pIndex]) {
+                            particles[pIndex].targetX = rect.left + (Math.random() * rect.width);
+                            particles[pIndex].targetY = rect.top + (Math.random() * rect.height);
+                            pIndex++;
+                        }
+                    }
+                });
+            } catch (e) { console.error("Vote Count Error", e); }
         }
 
         window.addEventListener('keydown', (e) => {
-            if (e.key === "ArrowRight") {
-                revealed = true;
-                if (window.targetAnswer) document.getElementById('box' + window.targetAnswer).classList.add('correct-glow');
-                
-                // Snap particles to random boxes for visual effect
-                const boxes = ['A','B','C','D'];
-                particles.forEach(p => {
-                    const choice = boxes[Math.floor(Math.random()*4)];
-                    const rect = document.getElementById('box' + choice).getBoundingClientRect();
-                    p.targetX = rect.left + Math.random() * rect.width;
-                    p.targetY = rect.top + Math.random() * rect.height;
-                });
-            }
+            if (e.key === "ArrowRight") revealVotes();
         });
 
-        init();
-        draw();
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+        initParticles();
+        animate();
         fetchScenarioData();
     </script>
 </body>
