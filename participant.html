@@ -2,66 +2,91 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rally Point Training Participant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ARGUS Participant</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .header { border-bottom: 2px solid #FF0000; padding: 10px; font-weight: bold; letter-spacing: 2px; margin-bottom: 30px; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .vote-btn { 
-            background: #000; border: 2px solid #fff; color: #fff; 
-            padding: 50px 0; font-size: 30px; font-weight: bold; border-radius: 8px;
-        }
-        .vote-btn:active { background: #FF0000; border-color: #FF0000; }
-        #msg { margin-top: 30px; color: #888; text-transform: uppercase; font-size: 12px; }
+        body { margin: 0; background: #111; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .header { position: absolute; top: 20px; text-align: center; width: 100%; }
+        .scenario-label { color: #ffcc00; font-size: 14px; letter-spacing: 2px; margin-bottom: 5px; }
+        .grid { display: grid; grid-template-columns: 1 row; gap: 15px; width: 85%; max-width: 400px; }
+        .btn { height: 80px; border-radius: 12px; border: none; font-size: 28px; font-weight: bold; color: white; transition: transform 0.1s, opacity 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn:active { transform: scale(0.95); }
+        .btn-a { background: #d32f2f; }
+        .btn-b { background: #1976d2; }
+        .btn-c { background: #388e3c; }
+        .btn-d { background: #fbc02d; color: #000; }
+        #status { margin-top: 30px; font-size: 18px; font-weight: 600; text-align: center; padding: 0 20px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div class="header">RALLY POINT TRAINING</div>
-    <div id="instruction">SELECT YOUR RESPONSE</div>
-    
-    <div class="btn-grid">
-        <button class="vote-btn" onclick="castVote('A')">A</button>
-        <button class="vote-btn" onclick="castVote('B')">B</button>
-        <button class="vote-btn" onclick="castVote('C')">C</button>
-        <button class="vote-btn" onclick="castVote('D')">D</button>
+
+    <div class="header">
+        <div class="scenario-label" id="scenarioDisplay">INITIALIZING...</div>
+        <div style="font-size: 20px; font-weight: 800;">CAST YOUR VOTE</div>
     </div>
 
-    <div id="msg">Awaiting next scenario...</div>
+    <div id="voteContainer" class="grid">
+        <button class="btn btn-a" onclick="submitVote('A')">A</button>
+        <button class="btn btn-b" onclick="submitVote('B') )">B</button>
+        <button class="btn btn-c" onclick="submitVote('C')">C</button>
+        <button class="btn btn-d" onclick="submitVote('D')">D</button>
+    </div>
 
-   <script>
-    // This wipes the "already recorded" memory from your phone's browser
-    localStorage.clear(); 
+    <div id="status">Ready for input...</div>
 
-    // Your specific Google Engine Link
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyBCZqR-88pf_Vs3GNdyhxmuFv2YHGs-StkopeKKIejyqxhKJc9MFbWaonQL-1hwwcJXA/exec";
+    <script>
+        // --- CONFIGURATION ---
+        const scriptURL = "https://script.google.com/macros/s/AKfycbxEc0IjEbwC-I1Swm9Dja6BssK7nQQKjtch4qGB8uOBGJIQucVoRYWhci0lfqBGEUSPbg/exec";
+        
+        // Pull Scenario ID from URL (e.g., ?id=10SBV01)
+        const urlParams = new URLSearchParams(window.location.search);
+        const scenarioID = urlParams.get('id') || "TRAINING";
+        document.getElementById('scenarioDisplay').innerText = "SCENARIO: " + scenarioID;
 
-    let hasVoted = false;
+        // Generate or retrieve a persistent Device ID so people can't multi-vote easily
+        let deviceID = localStorage.getItem('argus_id');
+        if (!deviceID) {
+            deviceID = 'DEV-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('argus_id', deviceID);
+        }
 
-    function castVote(choice) {
-        if (hasVoted) return; 
+        function submitVote(choice) {
+            const statusDiv = document.getElementById('status');
+            const container = document.getElementById('voteContainer');
 
-        hasVoted = true;
+            // Visual feedback
+            statusDiv.innerText = "RECORDING VOTE...";
+            statusDiv.style.color = "#ffcc00";
+            container.style.opacity = "0.3";
+            container.style.pointerEvents = "none";
 
-        // Visual Feedback: Changes text and dims buttons
-        document.getElementById('instruction').innerText = "VOTE RECORDED";
-        const buttons = document.querySelectorAll('.vote-btn');
-        buttons.forEach(btn => {
-            btn.style.opacity = "0.3";
-            btn.style.pointerEvents = "none"; 
-        });
+            const data = {
+                scenarioID: scenarioID,
+                vote: choice,
+                deviceID: deviceID
+            };
 
-        // Send the data to your Google Sheet
-        fetch(GOOGLE_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-                scenarioId: "S1", 
-                activeHeartbeats: 1, 
-                correctVotes: (choice === 'B' ? 1 : 0) 
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors', // Essential for Google Apps Script POST
+                cache: 'no-cache',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             })
-        });
-    }
-</script>
-       </body>
+            .then(() => {
+                statusDiv.innerText = "VOTE RECORDED - SWIPE DOWN TO RESET";
+                statusDiv.style.color = "#00ff00";
+                console.log("Vote submitted: " + choice);
+            })
+            .catch(error => {
+                statusDiv.innerText = "ERROR. TRY AGAIN.";
+                statusDiv.style.color = "#ff4444";
+                container.style.opacity = "1";
+                container.style.pointerEvents = "all";
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
 </html>
