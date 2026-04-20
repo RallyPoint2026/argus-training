@@ -10,7 +10,15 @@
         .logo-text { color: #ffcc00; font-size: 24px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px; }
         .scenario-label { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
         
-        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 85%; max-width: 400px; transition: opacity 0.3s; }
+        .grid { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 15px; 
+    width: 85%; 
+    max-width: 400px; 
+    margin-top: 120px; /* Increased from 60px to clear the header */
+    transition: opacity 0.3s; 
+}
         
         .btn { height: 90px; border-radius: 15px; border: 2px solid #333; font-size: 32px; font-weight: 800; color: white; background: #1a1a1a; transition: all 0.1s; }
         .btn:active { transform: scale(0.95); background: #333; }
@@ -41,7 +49,7 @@
     <div id="status">Tap a button to vote.</div>
 
     <script>
-        const scriptURL = "https://script.google.com/macros/s/AKfycbw6ZzSP4tJy0sFpzEYZrEDjDoyYChfC6gf4pe7aPvAsV3pkjPw6M45WNrJ1o0SBD399eA/exec";
+        const scriptURL = "https://script.google.com/macros/s/AKfycbxAwaOp8xligwFkiI_D-4Vwm4M4XCA6WQQeNgnBSq-4AoZVXFLGeHYXCA6NOoZHgwIKvQ/exec";
         
         const urlParams = new URLSearchParams(window.location.search);
         const scenarioID = urlParams.get('id') || "10SBV01";
