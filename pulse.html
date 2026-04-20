@@ -91,19 +91,34 @@
         // 3. THE REVEAL (Logic for actual vote distribution)
         async function revealVotes() {
             if (revealed) return;
+            
+            // 1. Visually lock the reveal
             revealed = true;
+            document.getElementById('question').innerText = "CALCULATING VOTES...";
             
             if (window.targetAnswer) {
                 document.getElementById('box' + window.targetAnswer).classList.add('correct-glow');
             }
 
             try {
-                const resp = await fetch(`${VOTE_REPORT_URL}?id=${scenarioID}`);
+                // 'redirect: follow' is the secret sauce for Google Scripts
+                const resp = await fetch(`${VOTE_REPORT_URL}?id=${scenarioID}`, {
+                    method: "GET",
+                    redirect: "follow" 
+                });
+
+                if (!resp.ok) throw new Error("Network response was not ok");
+                
                 const counts = await resp.json();
+                console.log("Actual Votes Received:", counts);
+
                 const totalVotes = counts.A + counts.B + counts.C + counts.D;
                 
+                // Update the Header to show total count
+                document.getElementById('question').innerText = `DEBRIEF: ${totalVotes} RESPONSES`;
+
                 if (totalVotes === 0) {
-                    console.log("No votes found in log.");
+                    console.log("No votes found for this scenario.");
                     return;
                 }
 
@@ -121,7 +136,19 @@
                         }
                     }
                 });
-            } catch (e) { console.error("Vote Count Error", e); }
+
+            } catch (e) {
+                document.getElementById('question').innerText = "VOTE FETCH FAILED";
+                console.error("Critical Error:", e);
+                
+                // Fallback: If data fails, just scatter them randomly so the screen isn't frozen
+                particles.forEach(p => {
+                    const randomBox = ['A','B','C','D'][Math.floor(Math.random()*4)];
+                    const rect = document.getElementById('box' + randomBox).getBoundingClientRect();
+                    p.targetX = rect.left + (Math.random() * rect.width);
+                    p.targetY = rect.top + (Math.random() * rect.height);
+                });
+            }
         }
 
         window.addEventListener('keydown', (e) => {
