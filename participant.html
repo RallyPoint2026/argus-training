@@ -64,29 +64,26 @@
             }
         });
 
-        function submitVote(choice) {
+       function submitVote(choice) {
             const statusDiv = document.getElementById('status');
             const container = document.getElementById('voteContainer');
-
             statusDiv.innerText = "TRANSMITTING...";
             container.style.opacity = "0.2";
             container.style.pointerEvents = "none";
 
             fetch(scriptURL, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    scenarioID: scenarioID,
-                    vote: choice,
-                    deviceID: 'USER-' + Math.floor(Math.random()*10000)
-                })
+                mode: 'no-cors', // This is required for Google Apps Script
+                cache: 'no-cache',
+                body: JSON.stringify({ scenarioID: scenarioID, vote: choice })
             })
             .then(() => {
-                statusDiv.innerHTML = "<span style='color:#00ff00'>VOTE RECORDED</span><br>Swipe down to reset for next round.";
+                // This will now trigger correctly
+                statusDiv.innerHTML = "<span style='color:#00ff00; font-weight:bold;'>VOTE RECORDED</span><br>Swipe down to reset.";
             })
-            .catch(() => {
-                statusDiv.innerText = "ERROR. TAP TO RETRY.";
+            .catch((err) => {
+                console.error(err);
+                statusDiv.innerText = "ERROR. TRY AGAIN.";
                 container.style.opacity = "1";
                 container.style.pointerEvents = "all";
             });
