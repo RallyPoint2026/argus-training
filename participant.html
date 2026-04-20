@@ -6,47 +6,53 @@
     <title>Rally Point Training</title>
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .header { position: absolute; top: 40px; text-align: center; width: 100%; }
+        .header { position: absolute; top: 30px; text-align: center; width: 100%; }
         .logo-text { color: #ffcc00; font-size: 24px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px; }
         .scenario-label { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
         
-        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 85%; max-width: 400px; margin-top: 60px; transition: opacity 0.3s; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 85%; max-width: 400px; transition: opacity 0.3s; }
         
-        .btn { height: 80px; border-radius: 15px; border: 2px solid #333; font-size: 32px; font-weight: 800; color: white; background: #1a1a1a; transition: all 0.1s; outline: none; -webkit-tap-highlight-color: transparent; }
-        .btn:active { transform: scale(0.95); background: #333; border-color: #ffcc00; }
+        .btn { height: 90px; border-radius: 15px; border: 2px solid #333; font-size: 32px; font-weight: 800; color: white; background: #1a1a1a; transition: all 0.1s; }
+        .btn:active { transform: scale(0.95); background: #333; }
         
-        #status { margin-top: 30px; font-size: 16px; color: #666; text-align: center; padding: 0 20px; line-height: 1.4; }
+        /* Highlight colors for buttons */
+        .btn-a:active { border-color: #d32f2f; color: #d32f2f; }
+        .btn-b:active { border-color: #1976d2; color: #1976d2; }
+        .btn-c:active { border-color: #388e3c; color: #388e3c; }
+        .btn-d:active { border-color: #fbc02d; color: #fbc02d; }
+
+        #status { margin-top: 40px; font-size: 16px; color: #666; text-align: center; padding: 0 20px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="logo-text">RALLY POINT TRAINING</div>
-        <div id="scenarioDisplay" class="scenario-label">SCENARIO: LOADING...</div>
+        <div class="scenario-label" id="scenarioDisplay">SCENARIO: LOADING...</div>
     </div>
 
     <div id="voteContainer" class="grid">
-        <button class="btn" onclick="submitVote('A')">A</button>
-        <button class="btn" onclick="submitVote('B')">B</button>
-        <button class="btn" onclick="submitVote('C')">C</button>
-        <button class="btn" onclick="submitVote('D')">D</button>
+        <button class="btn btn-a" onclick="submitVote('A')">A</button>
+        <button class="btn btn-b" onclick="submitVote('B')">B</button>
+        <button class="btn btn-c" onclick="submitVote('C')">C</button>
+        <button class="btn btn-d" onclick="submitVote('D')">D</button>
     </div>
 
     <div id="status">Tap a button to vote.</div>
 
     <script>
-        const scriptURL = "https://script.google.com/macros/s/AKfycbxEc0IjEbwC-I1Swm9Dja6BssK7nQQKjtch4qGB8uOBGJIQucVoRYWhci0lfqBGEUSPbg/exec";
+        const scriptURL = "https://script.google.com/macros/s/AKfycbw6ZzSP4tJy0sFpzEYZrEDjDoyYChfC6gf4pe7aPvAsV3pkjPw6M45WNrJ1o0SBD399eA/exec";
         
         const urlParams = new URLSearchParams(window.location.search);
         const scenarioID = urlParams.get('id') || "10SBV01";
         document.getElementById('scenarioDisplay').innerText = "SCENARIO: " + scenarioID;
 
-        // Swipe down to reset
+        // Swipe to reset logic
         let touchstartY = 0;
         window.addEventListener('touchstart', e => touchstartY = e.changedTouches[0].screenY);
         window.addEventListener('touchend', e => {
             if (e.changedTouches[0].screenY > touchstartY + 100) {
-                location.reload();
+                location.reload(); // Refresh page on swipe down
             }
         });
 
@@ -61,16 +67,15 @@
             fetch(scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
-                cache: 'no-cache',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     scenarioID: scenarioID,
                     vote: choice,
-                    deviceID: 'ID-' + Math.floor(Math.random()*9999)
+                    deviceID: 'USER-' + Math.floor(Math.random()*10000)
                 })
             })
             .then(() => {
-                statusDiv.innerHTML = "<span style='color:#00ff00'>VOTE RECORDED</span><br>Swipe down to reset.";
+                statusDiv.innerHTML = "<span style='color:#00ff00'>VOTE RECORDED</span><br>Swipe down to reset for next round.";
             })
             .catch(() => {
                 statusDiv.innerText = "ERROR. TAP TO RETRY.";
