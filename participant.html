@@ -49,7 +49,7 @@
     <div id="status">Tap a button to vote.</div>
 
     <script>
-        const scriptURL = "https://script.google.com/macros/s/AKfycbxekC19rJjlynrs7Jl8Nb_RpSSFtqUqDlgotth_JAUHcmyFbeac5PzAvPFLQ_ZUxX0Yxw/exec";
+        const scriptURL = "https://script.google.com/macros/s/AKfycby-NiFEJYihMg2WdOY1ZXto-1vHDj9jydxd6aU2bm9l8U42Ul2eqA3fJM7qPVloiGXyrQ/exec";
         
         const urlParams = new URLSearchParams(window.location.search);
         const scenarioID = urlParams.get('id') || "10SBV01";
@@ -67,25 +67,17 @@
        function submitVote(choice) {
             const statusDiv = document.getElementById('status');
             const container = document.getElementById('voteContainer');
-            statusDiv.innerText = "TRANSMITTING...";
-            container.style.opacity = "0.2";
-            container.style.pointerEvents = "none";
 
+            // 1. Immediately "Lock" the screen so they can't vote twice
+            container.style.opacity = "0.1";
+            container.style.pointerEvents = "none";
+            statusDiv.innerHTML = "<span style='color:#00ff00; font-weight:bold;'>VOTE RECORDED</span><br>Swipe down to reset.";
+
+            // 2. Send the data in the background
             fetch(scriptURL, {
                 method: 'POST',
-                mode: 'no-cors', // This is required for Google Apps Script
-                cache: 'no-cache',
+                mode: 'no-cors',
                 body: JSON.stringify({ scenarioID: scenarioID, vote: choice })
-            })
-            .then(() => {
-                // This will now trigger correctly
-                statusDiv.innerHTML = "<span style='color:#00ff00; font-weight:bold;'>VOTE RECORDED</span><br>Swipe down to reset.";
-            })
-            .catch((err) => {
-                console.error(err);
-                statusDiv.innerText = "ERROR. TRY AGAIN.";
-                container.style.opacity = "1";
-                container.style.pointerEvents = "all";
             });
         }
     </script>
